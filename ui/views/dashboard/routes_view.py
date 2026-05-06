@@ -4,7 +4,7 @@ from __future__ import annotations
 import flet as ft
 
 from ui.api.client import APIClient, APIError
-from ui.utils import error_card, loading_center, section_header, show_snack, status_badge
+from ui.utils import error_card, loading_center, section_header, status_badge
 
 
 def _format_ts(ts: str | None) -> str:
@@ -29,8 +29,8 @@ def _routes_table(routes: list[dict]) -> ft.Control:
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=10,
             ),
-            alignment=ft.alignment.center,
-            padding=ft.padding.all(40),
+            alignment=ft.Alignment.CENTER,
+            padding=ft.Padding.all(40),
         )
 
     return ft.Row(
@@ -89,7 +89,7 @@ def _routes_table(routes: list[dict]) -> ft.Control:
 
 
 async def build_routes_view(page: ft.Page) -> ft.Control:
-    client = APIClient(page.session.get("token"))
+    client = APIClient()
 
     try:
         routes: list[dict] = await client.get("/routes/")
@@ -103,19 +103,17 @@ async def build_routes_view(page: ft.Page) -> ft.Control:
 
     data_container = ft.Column([_routes_table(routes)], expand=True)
 
-    # ── live status legend ────────────────────────────────────────────────────
-    from ui.utils import status_badge as _sb
     legend = ft.Row(
         [
             ft.Text("Status guide:", size=12, color=ft.Colors.GREY_500),
-            *[_sb(s) for s in ("PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED")],
+            *[status_badge(s) for s in ("PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED")],
         ],
         spacing=8,
     )
 
     async def reload(_=None) -> None:
         data_container.controls = [loading_center()]
-        await page.update_async()
+        page.update()
         try:
             fresh = await client.get("/routes/")
             fresh.sort(
@@ -124,7 +122,7 @@ async def build_routes_view(page: ft.Page) -> ft.Control:
             data_container.controls = [_routes_table(fresh)]
         except APIError as exc:
             data_container.controls = [error_card(exc.message)]
-        await page.update_async()
+        page.update()
 
     return ft.Column(
         [

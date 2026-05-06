@@ -13,7 +13,7 @@ class Customer(Base):
     __tablename__ = "customers"
 
     id: Mapped[intpk]
-    name: Mapped[str_150] = mapped_column(nullable=False)
+    name: Mapped[str_150] = mapped_column(nullable=False) # 'full_name' əvəzinə 'name'
     email: Mapped[str_254] = mapped_column(unique=True, nullable=False)
     address: Mapped[str_300] = mapped_column(nullable=False)
 

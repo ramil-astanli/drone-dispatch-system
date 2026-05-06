@@ -31,7 +31,7 @@ def status_badge(label: str) -> ft.Container:
         content=ft.Text(label, size=11, weight=ft.FontWeight.W_600, color=fg),
         bgcolor=bg,
         border_radius=12,
-        padding=ft.padding.symmetric(horizontal=10, vertical=3),
+        padding=ft.Padding.symmetric(horizontal=10, vertical=3),
     )
 
 
@@ -68,7 +68,7 @@ def stat_card(icon: str, label: str, value: str, color: str) -> ft.Card:
                 ],
                 spacing=6,
             ),
-            padding=ft.padding.all(22),
+            padding=ft.Padding.all(22),
             width=190,
         ),
         elevation=3,
@@ -90,7 +90,7 @@ def loading_center() -> ft.Container:
             [ft.ProgressRing(width=42, height=42, stroke_width=4)],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
         expand=True,
     )
 
@@ -107,7 +107,7 @@ def error_card(message: str) -> ft.Container:
         bgcolor="#2D1B1B",
         border=ft.border.all(1, ft.Colors.RED_900),
         border_radius=8,
-        padding=ft.padding.all(14),
+        padding=ft.Padding.all(14),
     )
 
 

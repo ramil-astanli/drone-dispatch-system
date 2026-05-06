@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import flet as ft
 
+import ui.state as state
 from ui.api.client import APIClient, APIError
 from ui.utils import error_card, field, loading_center, section_header, show_snack, status_badge
 
@@ -20,8 +21,8 @@ def _package_table(packages: list[dict]) -> ft.Control:
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=10,
             ),
-            alignment=ft.alignment.center,
-            padding=ft.padding.all(40),
+            alignment=ft.Alignment.CENTER,
+            padding=ft.Padding.all(40),
         )
 
     return ft.Row(
@@ -61,7 +62,7 @@ def _package_table(packages: list[dict]) -> ft.Control:
 
 
 async def build_packages_view(page: ft.Page) -> ft.Control:
-    client = APIClient(page.session.get("token"))
+    client = APIClient()
 
     try:
         packages: list[dict] = await client.get("/packages/")
@@ -72,31 +73,28 @@ async def build_packages_view(page: ft.Page) -> ft.Control:
 
     async def reload(_=None) -> None:
         data_container.controls = [loading_center()]
-        await page.update_async()
+        page.update()
         try:
             fresh = await client.get("/packages/")
             data_container.controls = [_package_table(fresh)]
         except APIError as exc:
             data_container.controls = [error_card(exc.message)]
-        await page.update_async()
+        page.update()
 
     async def open_add_dialog(_=None) -> None:
-        # Fetch customers to populate the dropdown
         try:
             customers: list[dict] = await client.get("/customers/")
         except APIError as exc:
             show_snack(page, f"Could not load customers: {exc.message}", error=True)
-            await page.update_async()
+            page.update()
             return
 
-        desc_f    = field("Description *", width=340)
-        weight_f  = field("Weight (kg) *", keyboard_type=ft.KeyboardType.NUMBER, width=340)
+        desc_f      = field("Description *", width=340)
+        weight_f    = field("Weight (kg) *", keyboard_type=ft.KeyboardType.NUMBER, width=340)
         priority_dd = ft.Dropdown(
-            label="Priority",
-            value="MEDIUM",
+            label="Priority", value="MEDIUM",
             options=[ft.dropdown.Option(p) for p in _PRIORITIES],
-            border_radius=8,
-            width=340,
+            border_radius=8, width=340,
         )
         customer_dd = ft.Dropdown(
             label="Customer *",
@@ -104,8 +102,7 @@ async def build_packages_view(page: ft.Page) -> ft.Control:
                 ft.dropdown.Option(key=str(c["id"]), text=f"#{c['id']}  {c['name']}")
                 for c in customers
             ],
-            border_radius=8,
-            width=340,
+            border_radius=8, width=340,
         )
         err_t    = ft.Text("", color=ft.Colors.RED_400, size=12, visible=False)
         save_btn = ft.FilledButton("Add Package")
@@ -116,27 +113,23 @@ async def build_packages_view(page: ft.Page) -> ft.Control:
             desc_f.error_text = weight_f.error_text = customer_dd.error_text = None
             has_err = False
             if not desc_f.value or not desc_f.value.strip():
-                desc_f.error_text = "Required"
-                has_err = True
+                desc_f.error_text = "Required"; has_err = True
             if not weight_f.value:
-                weight_f.error_text = "Required"
-                has_err = True
+                weight_f.error_text = "Required"; has_err = True
             else:
                 try:
                     float(weight_f.value)
                 except ValueError:
-                    weight_f.error_text = "Must be a number"
-                    has_err = True
+                    weight_f.error_text = "Must be a number"; has_err = True
             if not customer_dd.value:
-                customer_dd.error_text = "Select a customer"
-                has_err = True
+                customer_dd.error_text = "Select a customer"; has_err = True
             if has_err:
-                await page.update_async()
+                page.update()
                 return
 
             save_btn.disabled = True
             progress.visible  = True
-            await page.update_async()
+            page.update()
 
             try:
                 await client.post("/packages/", json={
@@ -147,22 +140,22 @@ async def build_packages_view(page: ft.Page) -> ft.Control:
                 })
                 dlg.open = False
                 show_snack(page, "Package added.")
-                await page.update_async()
+                page.update()
                 await reload()
             except APIError as exc:
                 if exc.status_code == 401:
-                    page.session.clear()
-                    await page.go_async("/login")
+                    state.clear()
+                    await page.push_route("/login")
                     return
-                err_t.value   = exc.message
-                err_t.visible = True
+                err_t.value       = exc.message
+                err_t.visible     = True
                 save_btn.disabled = False
                 progress.visible  = False
-                await page.update_async()
+                page.update()
 
         async def on_cancel(_=None) -> None:
             dlg.open = False
-            await page.update_async()
+            page.update()
 
         save_btn.on_click = on_save
 
@@ -185,7 +178,7 @@ async def build_packages_view(page: ft.Page) -> ft.Control:
         )
         page.overlay.append(dlg)
         dlg.open = True
-        await page.update_async()
+        page.update()
 
     return ft.Column(
         [
@@ -194,7 +187,8 @@ async def build_packages_view(page: ft.Page) -> ft.Control:
                     section_header("Packages", "All registered shipment packages"),
                     ft.Row(
                         [
-                            ft.OutlinedButton("Refresh", icon=ft.Icons.REFRESH, on_click=reload),
+                            ft.OutlinedButton("Refresh", icon=ft.Icons.REFRESH,
+                                              on_click=reload),
                             ft.FilledButton("Add Package", icon=ft.Icons.ADD,
                                             on_click=open_add_dialog),
                         ],

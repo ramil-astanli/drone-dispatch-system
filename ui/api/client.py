@@ -1,9 +1,9 @@
-"""Async HTTP client that injects the JWT Bearer token on every request."""
+"""Async HTTP client for the Spring Boot backend."""
 from __future__ import annotations
 
 import httpx
 
-BASE_URL = "http://127.0.0.1:8000/api/v1"
+BASE_URL = "http://localhost:8000/api/v1"
 _TIMEOUT = 15.0
 
 
@@ -18,15 +18,16 @@ class APIError(Exception):
 
 
 class APIClient:
-    """Thin async wrapper around httpx that carries a JWT Bearer token."""
+    """Thin async wrapper around httpx."""
 
     def __init__(self, token: str | None = None) -> None:
+        # Token kept for forward-compat; unused when JWT is disabled.
         self._token = token
 
     # ── private helpers ───────────────────────────────────────────────────────
 
     def _headers(self, extra: dict | None = None) -> dict[str, str]:
-        h: dict[str, str] = {}
+        h: dict[str, str] = {"Content-Type": "application/json"}
         if self._token:
             h["Authorization"] = f"Bearer {self._token}"
         if extra:
@@ -37,13 +38,13 @@ class APIClient:
         if resp.status_code in (200, 201, 204):
             return
         try:
-            detail = resp.json().get("detail", resp.text)
+            detail = resp.json().get("detail") or resp.json().get("message") or resp.text
         except Exception:
             detail = resp.text
 
         match resp.status_code:
             case 401:
-                raise APIError("Session expired — please log in again.", 401)
+                raise APIError("Invalid credentials — please try again.", 401)
             case 403:
                 raise APIError("Access denied.", 403)
             case 404:
@@ -51,21 +52,25 @@ class APIClient:
             case 409:
                 raise APIError(str(detail), 409)
             case 422:
-                raise APIError("Invalid data — check your input.", 422)
+                raise APIError(f"Validation error: {detail}", 422)
             case _:
                 raise APIError(f"Server error {resp.status_code}: {detail}", resp.status_code)
 
-    # ── auth (no token needed) ────────────────────────────────────────────────
+    # ── auth endpoints ────────────────────────────────────────────────────────
 
     async def login(self, username: str, password: str) -> dict:
+        """POST credentials as OAuth2 form data (required by OAuth2PasswordRequestForm)."""
         try:
             async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
                 r = await c.post(
                     f"{BASE_URL}/auth/login",
-                    data={"username": username, "password": password},
+                    data={"username": username, "password": password, "grant_type": "password"},
                 )
                 await self._check(r)
-                return r.json()
+                try:
+                    return r.json()
+                except Exception:
+                    return {}          # 200 with no body is fine
         except httpx.RequestError as exc:
             raise APIError(f"Cannot reach server: {exc}")
 
@@ -77,11 +82,14 @@ class APIClient:
                     json={"username": username, "email": email, "password": password},
                 )
                 await self._check(r)
-                return r.json()
+                try:
+                    return r.json()
+                except Exception:
+                    return {}
         except httpx.RequestError as exc:
             raise APIError(f"Cannot reach server: {exc}")
 
-    # ── protected CRUD ────────────────────────────────────────────────────────
+    # ── CRUD helpers ──────────────────────────────────────────────────────────
 
     async def get(self, path: str) -> list | dict:
         try:
@@ -95,22 +103,24 @@ class APIClient:
     async def post(self, path: str, json: dict | None = None) -> dict:
         try:
             async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
-                r = await c.post(
-                    f"{BASE_URL}{path}", json=json, headers=self._headers()
-                )
+                r = await c.post(f"{BASE_URL}{path}", json=json, headers=self._headers())
                 await self._check(r)
-                return r.json()
+                try:
+                    return r.json()
+                except Exception:
+                    return {}
         except httpx.RequestError as exc:
             raise APIError(f"Cannot reach server: {exc}")
 
     async def patch(self, path: str, json: dict | None = None) -> dict:
         try:
             async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
-                r = await c.patch(
-                    f"{BASE_URL}{path}", json=json, headers=self._headers()
-                )
+                r = await c.patch(f"{BASE_URL}{path}", json=json, headers=self._headers())
                 await self._check(r)
-                return r.json()
+                try:
+                    return r.json()
+                except Exception:
+                    return {}
         except httpx.RequestError as exc:
             raise APIError(f"Cannot reach server: {exc}")
 

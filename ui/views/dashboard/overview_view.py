@@ -10,7 +10,7 @@ from ui.utils import section_header, stat_card, status_badge
 
 
 async def build_overview_view(page: ft.Page) -> ft.Control:
-    client = APIClient(page.session.get("token"))
+    client = APIClient()
 
     try:
         drones, available, packages, routes = await asyncio.gather(
@@ -47,7 +47,7 @@ async def build_overview_view(page: ft.Page) -> ft.Control:
                     content=ft.Icon(ft.Icons.ROUTE, size=20),
                     bgcolor=ft.Colors.BLUE_900,
                     border_radius=8,
-                    padding=ft.padding.all(6),
+                    padding=ft.Padding.all(6),
                 ),
                 title=ft.Text(
                     f"Route #{r['id']}  —  {r['origin_address']} → {r['destination_address']}",
@@ -75,8 +75,8 @@ async def build_overview_view(page: ft.Page) -> ft.Control:
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=8,
         ),
-        alignment=ft.alignment.center,
-        padding=ft.padding.all(32),
+        alignment=ft.Alignment.CENTER,
+        padding=ft.Padding.all(32),
     )
 
     return ft.Column(

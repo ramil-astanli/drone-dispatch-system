@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import flet as ft
 
+import ui.state as state
 from ui.api.client import APIClient, APIError
 from ui.utils import field
 
@@ -48,17 +49,13 @@ def build_signup_view(page: ft.Page) -> ft.View:
                 email_f.value.strip(),
                 password_f.value,
             )
-            result = await APIClient().login(
-                username_f.value.strip(), password_f.value
-            )
-            # FIX: .set() yoxdur, dict kimi istifadə et
-            page.session["token"]    = result["access_token"]
-            page.session["username"] = username_f.value.strip()
+            await APIClient().login(username_f.value.strip(), password_f.value)
+            state.set("logged_in", True)
+            state.set("username", username_f.value.strip())
             await page.push_route("/dashboard")
         except APIError as exc:
-            status_t.value   = exc.message
-            status_t.visible = True
-        finally:
+            status_t.value      = exc.message
+            status_t.visible    = True
             signup_btn.disabled = False
             progress.visible    = False
             page.update()
@@ -97,7 +94,7 @@ def build_signup_view(page: ft.Page) -> ft.View:
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=14,
         ),
-        padding=ft.padding.all(42),
+        padding=ft.Padding.all(42),
         width=430,
     )
 
@@ -112,4 +109,5 @@ def build_signup_view(page: ft.Page) -> ft.View:
         ],
         vertical_alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        bgcolor=ft.Colors.SURFACE,
     )

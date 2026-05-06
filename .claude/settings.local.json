@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python \"C:/Projects/drone_dispatch/fix_session.py\")",
+      "Bash(python -c ' *)"
+    ]
+  }
+}

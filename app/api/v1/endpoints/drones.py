@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
 from app.core.database import get_db
-from app.models.user import User
 from app.schemas.drone import DroneCreate, DroneRead, DroneUpdate
 from app.services.drone_service import DroneService
 
@@ -18,13 +16,11 @@ def get_drone_service(db: AsyncSession = Depends(get_db)) -> DroneService:
     "/",
     response_model=DroneRead,
     status_code=status.HTTP_201_CREATED,
-    summary="Register a new drone",
-    responses={401: {"description": "Not authenticated"}},
+    summary="Add a new drone",
 )
 async def register_drone(
     payload: DroneCreate,
     svc: DroneService = Depends(get_drone_service),
-    _: User = Depends(get_current_user),
 ) -> DroneRead:
     return await svc.register(payload)
 

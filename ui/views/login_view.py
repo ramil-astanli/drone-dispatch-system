@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import flet as ft
 
+import ui.state as state
 from ui.api.client import APIClient, APIError
 from ui.utils import field
 
@@ -20,7 +21,7 @@ def build_login_view(page: ft.Page) -> ft.View:
         if not username_f.value or not password_f.value:
             status_t.value   = "Please enter your username and password."
             status_t.visible = True
-            page.update()          # ← update_async() deyil
+            page.update()
             return
 
         login_btn.disabled = True
@@ -29,16 +30,13 @@ def build_login_view(page: ft.Page) -> ft.View:
         page.update()
 
         try:
-            result = await APIClient().login(
-                username_f.value.strip(), password_f.value
-            )
-            page.session.set("token",    result["access_token"])
-            page.session.set("username", username_f.value.strip())
-            await page.push_route("/dashboard")   # ← go_async() deyil
+            await APIClient().login(username_f.value.strip(), password_f.value)
+            state.set("logged_in", True)
+            state.set("username", username_f.value.strip())
+            await page.push_route("/dashboard")
         except APIError as exc:
-            status_t.value   = exc.message
-            status_t.visible = True
-        finally:
+            status_t.value     = exc.message
+            status_t.visible   = True
             login_btn.disabled = False
             progress.visible   = False
             page.update()
@@ -48,7 +46,7 @@ def build_login_view(page: ft.Page) -> ft.View:
     password_f.on_submit = do_login
 
     async def go_signup(_=None) -> None:
-        await page.push_route("/signup")   # ← go_async() deyil
+        await page.push_route("/signup")
 
     card = ft.Container(
         content=ft.Column(
@@ -77,7 +75,7 @@ def build_login_view(page: ft.Page) -> ft.View:
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=14,
         ),
-        padding=ft.padding.all(42),
+        padding=ft.Padding.all(42),
         width=430,
     )
 
@@ -92,4 +90,5 @@ def build_login_view(page: ft.Page) -> ft.View:
         ],
         vertical_alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        bgcolor=ft.Colors.SURFACE,
     )

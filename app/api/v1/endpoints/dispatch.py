@@ -2,9 +2,7 @@ from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
 from app.core.database import get_db
-from app.models.user import User
 from app.schemas.route import RouteRead
 from app.services.dispatch_service import DispatchService
 
@@ -34,7 +32,6 @@ class DispatchRequest(BaseModel):
 async def dispatch_package(
     payload: DispatchRequest,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
 ) -> RouteRead:
     """
     Assign the best available drone to a package and open a delivery route.

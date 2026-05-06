@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import flet as ft
 
+import ui.state as state
 from ui.api.client import APIClient, APIError
 from ui.utils import error_card, field, loading_center, section_header, show_snack
 
@@ -18,8 +19,8 @@ def _customer_table(customers: list[dict]) -> ft.Control:
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=10,
             ),
-            alignment=ft.alignment.center,
-            padding=ft.padding.all(40),
+            alignment=ft.Alignment.CENTER,
+            padding=ft.Padding.all(40),
         )
 
     return ft.Row(
@@ -57,7 +58,7 @@ def _customer_table(customers: list[dict]) -> ft.Control:
 
 
 async def build_customers_view(page: ft.Page) -> ft.Control:
-    client = APIClient(page.session.get("token"))
+    client = APIClient()
 
     try:
         customers: list[dict] = await client.get("/customers/")
@@ -68,43 +69,40 @@ async def build_customers_view(page: ft.Page) -> ft.Control:
 
     async def reload(_=None) -> None:
         data_container.controls = [loading_center()]
-        await page.update_async()
+        page.update()
         try:
             fresh = await client.get("/customers/")
             data_container.controls = [_customer_table(fresh)]
         except APIError as exc:
             data_container.controls = [error_card(exc.message)]
-        await page.update_async()
+        page.update()
 
     async def open_add_dialog(_=None) -> None:
-        name_f    = field("Full Name *",    width=340)
-        email_f   = field("Email *",        keyboard_type=ft.KeyboardType.EMAIL, width=340)
-        address_f = field("Address *",      width=340, min_lines=2, max_lines=3,
+        name_f    = field("Full Name *",  width=340)
+        email_f   = field("Email *",      keyboard_type=ft.KeyboardType.EMAIL, width=340)
+        address_f = field("Address *",    width=340, min_lines=2, max_lines=3,
                           multiline=True, shift_enter=True)
-        err_t     = ft.Text("", color=ft.Colors.RED_400, size=12, visible=False)
-        save_btn  = ft.FilledButton("Add Customer")
-        progress  = ft.ProgressRing(width=20, height=20, stroke_width=2, visible=False)
+        err_t    = ft.Text("", color=ft.Colors.RED_400, size=12, visible=False)
+        save_btn = ft.FilledButton("Add Customer")
+        progress = ft.ProgressRing(width=20, height=20, stroke_width=2, visible=False)
 
         async def on_save(_=None) -> None:
             err_t.visible = False
             name_f.error_text = email_f.error_text = address_f.error_text = None
             has_err = False
             if not name_f.value or not name_f.value.strip():
-                name_f.error_text = "Required"
-                has_err = True
+                name_f.error_text = "Required"; has_err = True
             if not email_f.value or "@" not in email_f.value:
-                email_f.error_text = "Enter a valid email"
-                has_err = True
+                email_f.error_text = "Enter a valid email"; has_err = True
             if not address_f.value or not address_f.value.strip():
-                address_f.error_text = "Required"
-                has_err = True
+                address_f.error_text = "Required"; has_err = True
             if has_err:
-                await page.update_async()
+                page.update()
                 return
 
             save_btn.disabled = True
             progress.visible  = True
-            await page.update_async()
+            page.update()
 
             try:
                 await client.post("/customers/", json={
@@ -114,22 +112,22 @@ async def build_customers_view(page: ft.Page) -> ft.Control:
                 })
                 dlg.open = False
                 show_snack(page, f"Customer '{name_f.value.strip()}' added.")
-                await page.update_async()
+                page.update()
                 await reload()
             except APIError as exc:
                 if exc.status_code == 401:
-                    page.session.clear()
-                    await page.go_async("/login")
+                    state.clear()
+                    await page.push_route("/login")
                     return
-                err_t.value   = exc.message
-                err_t.visible = True
+                err_t.value       = exc.message
+                err_t.visible     = True
                 save_btn.disabled = False
                 progress.visible  = False
-                await page.update_async()
+                page.update()
 
         async def on_cancel(_=None) -> None:
             dlg.open = False
-            await page.update_async()
+            page.update()
 
         save_btn.on_click = on_save
 
@@ -152,7 +150,7 @@ async def build_customers_view(page: ft.Page) -> ft.Control:
         )
         page.overlay.append(dlg)
         dlg.open = True
-        await page.update_async()
+        page.update()
 
     return ft.Column(
         [
@@ -161,7 +159,8 @@ async def build_customers_view(page: ft.Page) -> ft.Control:
                     section_header("Customers", "Registered delivery recipients"),
                     ft.Row(
                         [
-                            ft.OutlinedButton("Refresh", icon=ft.Icons.REFRESH, on_click=reload),
+                            ft.OutlinedButton("Refresh", icon=ft.Icons.REFRESH,
+                                              on_click=reload),
                             ft.FilledButton("Add Customer", icon=ft.Icons.PERSON_ADD,
                                             on_click=open_add_dialog),
                         ],
