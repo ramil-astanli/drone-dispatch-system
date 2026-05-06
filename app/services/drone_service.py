@@ -11,7 +11,6 @@ class DroneService(BaseService[Drone]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(Drone, db)
 
-    # ── Domain-specific helpers ───────────────────────────────────────────────
 
     async def get_or_404(self, drone_id: int) -> Drone:
         """Return the drone or raise a 404 HTTP exception."""

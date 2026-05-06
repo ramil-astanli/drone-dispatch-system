@@ -13,8 +13,7 @@ from app.core.config import settings
 class Base(DeclarativeBase):
     """Shared declarative base — import from here so metadata stays in one place."""
 
-# check_same_thread=False is required for aiosqlite because SQLAlchemy's thread-safety
-# check fires even though aiosqlite serialises all I/O through a single background thread.
+
 engine = create_async_engine(
     settings.database_url,
     connect_args={"check_same_thread": False},
