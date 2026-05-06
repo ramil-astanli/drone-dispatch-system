@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import DroneNotFoundError, NoDronesAvailableError
+from app.core.exceptions import DroneNotFoundError, DuplicateSerialNumberError, NoDronesAvailableError
 from app.models.drone import Drone, DroneStatus
 from app.schemas.drone import DroneCreate, DroneUpdate
 from app.services.base import BaseService
@@ -20,7 +20,11 @@ class DroneService(BaseService[Drone]):
         return drone
 
     async def register(self, payload: DroneCreate) -> Drone:
-        """Persist a new drone and return it."""
+        existing = await self.db.execute(
+            select(Drone).where(Drone.serial_number == payload.serial_number)
+        )
+        if existing.scalar_one_or_none() is not None:
+            raise DuplicateSerialNumberError(payload.serial_number)
         return await self.create(payload)
 
     async def get_available(self) -> list[Drone]:

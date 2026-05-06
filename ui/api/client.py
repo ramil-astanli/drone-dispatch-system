@@ -24,7 +24,6 @@ class APIClient:
         # Token kept for forward-compat; unused when JWT is disabled.
         self._token = token
 
-    # ── private helpers ───────────────────────────────────────────────────────
 
     def _headers(self, extra: dict | None = None) -> dict[str, str]:
         h: dict[str, str] = {"Content-Type": "application/json"}

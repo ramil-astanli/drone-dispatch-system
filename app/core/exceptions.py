@@ -54,6 +54,14 @@ class PackageNotFoundError(HTTPException):
         )
 
 
+class DuplicateSerialNumberError(HTTPException):
+    def __init__(self, serial_number: str) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"A drone with serial number '{serial_number}' already exists.",
+        )
+
+
 class NoDronesAvailableError(HTTPException):
     def __init__(self) -> None:
         super().__init__(

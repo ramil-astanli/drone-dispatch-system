@@ -1,7 +1,9 @@
 from typing import Generic, TypeVar
 
+from fastapi import HTTPException, status
 from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import Base
@@ -31,7 +33,14 @@ class BaseService(Generic[ModelT]):
     async def create(self, payload: PydanticBaseModel) -> ModelT:
         instance = self.model(**payload.model_dump())
         self.db.add(instance)
-        await self.db.flush()
+        try:
+            await self.db.flush()
+        except IntegrityError as exc:
+            await self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A record with the same unique value already exists.",
+            ) from exc
         await self.db.refresh(instance)
         return instance
 
